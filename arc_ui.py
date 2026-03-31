@@ -1,11 +1,22 @@
 import bpy
 import os
 
+LOGO_IMAGE = None
+
 def load_logo():
+    global LOGO_IMAGE
+
+    if LOGO_IMAGE and LOGO_IMAGE.name in bpy.data.images:
+        return LOGO_IMAGE
+
     path = os.path.join(os.path.dirname(__file__), "ARC.png")
     if os.path.exists(path):
-        return bpy.data.images.load(path, check_existing=True)
-    return None
+        LOGO_IMAGE = bpy.data.images.load(path, check_existing=True)
+    else:
+        LOGO_IMAGE = None
+
+    return LOGO_IMAGE
+
 
 class ARC_PT_Main(bpy.types.Panel):
     bl_label = ""
@@ -22,29 +33,34 @@ class ARC_PT_Main(bpy.types.Panel):
         if logo:
             layout.template_icon(icon_value=logo.preview.icon_id, scale=6)
 
-        layout.prop(arc, "enabled", text="Enable")
+        layout.prop(arc, "enabled")
 
         if not arc.enabled:
             return
 
-        layout.operator("arc.add_camera", text="Add Camera")
+        layout.operator("arc.add_camera")
 
         layout.separator()
 
-        layout.label(text="Screenplay")
-        layout.prop(arc, "script_input", text="")
+        # Screenplay
+        box_script = layout.box()
+        box_script.label(text="Screenplay")
+        box_script.prop(arc, "script_input", text="")
 
-        layout.prop(arc, "api_key", text="API Key")
+        layout.prop(arc, "api_key")
 
-        layout.operator("arc.ai_script", text="Generate Suggestions")
+        layout.operator("arc.ai_script")
 
         layout.separator()
 
-        layout.label(text="Suggestions")
-        layout.prop(arc, "ai_output", text="")
+        # Suggestions
+        box_suggestions = layout.box()
+        box_suggestions.label(text="Suggestions")
+        box_suggestions.prop(arc, "ai_output", text="")
 
-        layout.operator("arc.apply_camera", text="Apply Camera")
-        layout.operator("arc.apply_light", text="Apply Lighting")
+        layout.operator("arc.apply_camera")
+        layout.operator("arc.apply_light")
+
 
 classes = [ARC_PT_Main]
 
