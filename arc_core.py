@@ -7,15 +7,13 @@ class ARCVisionSettings(bpy.types.PropertyGroup):
 
     enabled: BoolProperty(name="Enable", default=False)
 
-    script_input: StringProperty(
-        name="Screenplay",
-        options={'MULTILINE'}
-    )
+script_input: StringProperty(
+    name="Screenplay"
+)
 
-    ai_output: StringProperty(
-        name="Suggestions",
-        options={'MULTILINE'}
-    )
+ai_output: StringProperty(
+    name="Suggestions"
+)
 
     api_key: StringProperty(
         name="API Key",
