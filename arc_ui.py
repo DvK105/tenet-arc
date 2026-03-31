@@ -64,8 +64,10 @@ classes = [ARC_PT_Main]
 
 def register_ui():
     for c in classes:
-        bpy.utils.register_class(c)
+        if not hasattr(bpy.types, c.__name__):
+            bpy.utils.register_class(c)
 
 def unregister_ui():
     for c in reversed(classes):
-        bpy.utils.unregister_class(c)
+        if hasattr(bpy.types, c.__name__):
+            bpy.utils.unregister_class(c)

@@ -46,10 +46,14 @@ classes = [ARCVisionSettings, ARC_OT_AddCamera]
 
 def register_core():
     for c in classes:
-        bpy.utils.register_class(c)
-    bpy.types.Scene.arc_vision = PointerProperty(type=ARCVisionSettings)
+        if not hasattr(bpy.types, c.__name__):
+            bpy.utils.register_class(c)
+    if not hasattr(bpy.types.Scene, 'arc_vision'):
+        bpy.types.Scene.arc_vision = PointerProperty(type=ARCVisionSettings)
 
 def unregister_core():
     for c in reversed(classes):
-        bpy.utils.unregister_class(c)
-    del bpy.types.Scene.arc_vision
+        if hasattr(bpy.types, c.__name__):
+            bpy.utils.unregister_class(c)
+    if hasattr(bpy.types.Scene, 'arc_vision'):
+        del bpy.types.Scene.arc_vision
