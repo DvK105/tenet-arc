@@ -1,5 +1,5 @@
 import bpy
-import re
+import json
 
 # ---------------- SAFE IMPORT ---------------- #
 
@@ -23,7 +23,7 @@ def generate_scene_suggestions(script, api_key):
 
     genai = get_genai()
     if not genai:
-        return "ERROR: Gemini not installed. Please install 'google-generativeai'."
+        return "ERROR: Install 'google-generativeai'."
 
     try:
         genai.configure(api_key=api_key)
@@ -32,24 +32,26 @@ def generate_scene_suggestions(script, api_key):
         prompt = f"""
 You are a professional cinematographer.
 
-Convert this screenplay into clear, practical suggestions.
+Convert this screenplay into STRICT JSON.
+
+Rules:
+- Output ONLY valid JSON
+- No explanations
+- No markdown
+
+Schema:
+{{
+  "lens": 24 | 35 | 50 | 75,
+  "shot": "close-up | medium | wide",
+  "lighting": {{
+    "type": "low_key | high_key",
+    "intensity": number,
+    "position": [x, y, z]
+  }}
+}}
 
 Script:
 {script}
-
-Format:
-
-SHOTS:
-- shot type, lens, movement
-
-LIGHTING:
-- key light
-- fill
-- mood
-
-CAMERA:
-- lens (mm)
-- angle
 """
 
         response = model.generate_content(prompt)
@@ -59,11 +61,13 @@ CAMERA:
         return f"AI Error: {str(e)}"
 
 
-# ---------------- SAFE LENS PARSING ---------------- #
+# ---------------- JSON PARSER ---------------- #
 
-def extract_lens(text):
-    match = re.search(r"\b(24|35|50|75)\s*mm\b", text.lower())
-    return int(match.group(1)) if match else None
+def parse_ai_json(text):
+    try:
+        return json.loads(text)
+    except:
+        return None
 
 
 # ---------------- OPERATORS ---------------- #
@@ -75,14 +79,23 @@ class ARC_OT_AI_Script(bpy.types.Operator):
     def execute(self, context):
         arc = context.scene.arc_vision
 
-        arc.ai_output = generate_scene_suggestions(
+        result = generate_scene_suggestions(
             arc.script_input,
             arc.api_key
         )
 
+        # Pretty format if valid JSON
+        parsed = parse_ai_json(result)
+        if parsed:
+            arc.ai_output = json.dumps(parsed, indent=2)
+        else:
+            arc.ai_output = result
+
         self.report({'INFO'}, "AI Updated")
         return {'FINISHED'}
 
+
+# ---------------- APPLY CAMERA ---------------- #
 
 class ARC_OT_ApplyCamera(bpy.types.Operator):
     bl_idname = "arc.apply_camera"
@@ -96,23 +109,41 @@ class ARC_OT_ApplyCamera(bpy.types.Operator):
             self.report({'WARNING'}, "No camera found.")
             return {'CANCELLED'}
 
-        lens = extract_lens(arc.ai_output)
+        data = parse_ai_json(arc.ai_output)
+
+        if not data:
+            self.report({'ERROR'}, "Invalid AI JSON.")
+            return {'CANCELLED'}
+
+        lens = data.get("lens")
 
         if lens:
             cam.data.lens = lens
             self.report({'INFO'}, f"Lens set to {lens}mm")
-        else:
-            self.report({'WARNING'}, "No valid lens found in AI output.")
 
         return {'FINISHED'}
 
+
+# ---------------- APPLY LIGHTING ---------------- #
 
 class ARC_OT_ApplyLighting(bpy.types.Operator):
     bl_idname = "arc.apply_light"
     bl_label = "Apply Lighting"
 
     def execute(self, context):
+        arc = context.scene.arc_vision
         scene = context.scene
+
+        data = parse_ai_json(arc.ai_output)
+
+        if not data:
+            self.report({'ERROR'}, "Invalid AI JSON.")
+            return {'CANCELLED'}
+
+        lighting = data.get("lighting", {})
+
+        intensity = lighting.get("intensity", 1000)
+        position = lighting.get("position", [3, -3, 5])
 
         light = bpy.data.objects.get("ARC_Key")
 
@@ -123,9 +154,8 @@ class ARC_OT_ApplyLighting(bpy.types.Operator):
         else:
             light_data = light.data
 
-        if isinstance(light_data, bpy.types.Light):
-            light.location = (3, -3, 5)
-            light_data.energy = 1000
+        light.location = position
+        light_data.energy = intensity
 
         self.report({'INFO'}, "Lighting applied")
         return {'FINISHED'}

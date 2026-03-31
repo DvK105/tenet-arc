@@ -42,7 +42,6 @@ class ARC_PT_Main(bpy.types.Panel):
 
         layout.separator()
 
-        # Screenplay
         box_script = layout.box()
         box_script.label(text="Screenplay")
         box_script.prop(arc, "script_input", text="")
@@ -53,7 +52,6 @@ class ARC_PT_Main(bpy.types.Panel):
 
         layout.separator()
 
-        # Suggestions
         box_suggestions = layout.box()
         box_suggestions.label(text="Suggestions")
         box_suggestions.prop(arc, "ai_output", text="")
