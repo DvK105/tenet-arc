@@ -1,19 +1,18 @@
 import bpy
-from bpy.props import *
+from bpy.props import BoolProperty, StringProperty, PointerProperty
 
 ARC_ASPECT = 1.76
 
 class ARCVisionSettings(bpy.types.PropertyGroup):
-
     enabled: BoolProperty(name="Enable", default=False)
 
-script_input: StringProperty(
-    name="Screenplay"
-)
+    script_input: StringProperty(
+        name="Screenplay"
+    )
 
-ai_output: StringProperty(
-    name="Suggestions"
-)
+    ai_output: StringProperty(
+        name="Suggestions"
+    )
 
     api_key: StringProperty(
         name="API Key",
@@ -28,8 +27,10 @@ def apply_aspect(scene):
     rd.pixel_aspect_y = 1.0
 
 class ARC_OT_AddCamera(bpy.types.Operator):
+    """Add an ARC camera to the scene"""
     bl_idname = "arc.add_camera"
     bl_label = "Add Camera"
+    bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         cam_data = bpy.data.cameras.new("ARC_Cam")
@@ -46,14 +47,22 @@ classes = [ARCVisionSettings, ARC_OT_AddCamera]
 
 def register_core():
     for c in classes:
-        if not hasattr(bpy.types, c.__name__):
+        try:
             bpy.utils.register_class(c)
-    if not hasattr(bpy.types.Scene, 'arc_vision'):
+        except ValueError:
+            pass  # Class already registered
+    try:
         bpy.types.Scene.arc_vision = PointerProperty(type=ARCVisionSettings)
+    except TypeError:
+        pass  # Property already registered
 
 def unregister_core():
-    for c in reversed(classes):
-        if hasattr(bpy.types, c.__name__):
-            bpy.utils.unregister_class(c)
-    if hasattr(bpy.types.Scene, 'arc_vision'):
+    try:
         del bpy.types.Scene.arc_vision
+    except AttributeError:
+        pass  # Property not registered
+    for c in reversed(classes):
+        try:
+            bpy.utils.unregister_class(c)
+        except ValueError:
+            pass  # Class not registered

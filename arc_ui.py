@@ -19,7 +19,8 @@ def load_logo():
 
 
 class ARC_PT_Main(bpy.types.Panel):
-    bl_label = ""
+    """Main ARC panel in the 3D View"""
+    bl_label = "ARC Vision"
     bl_idname = "ARC_PT_MAIN"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -27,6 +28,12 @@ class ARC_PT_Main(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        
+        # Check if arc_vision property exists
+        if not hasattr(context.scene, 'arc_vision'):
+            layout.label(text="ARC Vision not properly registered")
+            return
+            
         arc = context.scene.arc_vision
 
         logo = load_logo()
@@ -64,10 +71,14 @@ classes = [ARC_PT_Main]
 
 def register_ui():
     for c in classes:
-        if not hasattr(bpy.types, c.__name__):
+        try:
             bpy.utils.register_class(c)
+        except ValueError:
+            pass  # Class already registered
 
 def unregister_ui():
     for c in reversed(classes):
-        if hasattr(bpy.types, c.__name__):
+        try:
             bpy.utils.unregister_class(c)
+        except ValueError:
+            pass  # Class not registered
